@@ -5,6 +5,8 @@ export const ROUTES = {
   databaseClientEdit: '/database/client-search/:clientId/edit',
   databaseClientAdd: '/database/client-add',
   databaseInteragency: '/database/interagency',
+  databaseInteragencyManualCreate: '/database/interagency/manual-create',
+  databaseInteragencyDetail: '/database/interagency/:requestId',
   applications: '/applications',
   applicationsUpload: '/applications/upload',
   applicationsRun: '/applications/run',

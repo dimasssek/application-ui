@@ -1,0 +1,6 @@
+node_modules/
+build/
+.git/
+.idea/
+*.iml
+npm-debug.log*

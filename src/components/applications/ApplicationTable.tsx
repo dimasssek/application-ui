@@ -14,7 +14,10 @@ import {
 } from '../../types/applications/registry';
 import { lookupLabel } from '../../types/applications/enums';
 
-type RowLike = { id: string; status_business: string } & Record<string, unknown>;
+type RowLike = { id: string; statusBusiness: string } & Record<
+  string,
+  unknown
+>;
 
 type ApplicationTableProps<TDto extends RowLike> = {
   items: TDto[];
@@ -108,7 +111,7 @@ export function ApplicationTable<TDto extends RowLike>({
           ) : (
             items.map((item) => {
               const selected = selectedId === item.id;
-              const queued = isQueued(item.status_business);
+              const queued = isQueued(item.statusBusiness);
               return (
                 <TableRow
                   key={item.id}

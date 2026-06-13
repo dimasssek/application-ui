@@ -8,7 +8,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   deleteClient,
   getClientEditPath,
@@ -23,13 +23,19 @@ import {
   DATABASE_SECTIONS,
 } from '../../navigation/databaseSections';
 import { ROUTES } from '../../navigation/routes';
-import type { BankClient, ClientSearchFilters } from '../../types/client';
-import { EMPTY_CLIENT_SEARCH_FILTERS } from '../../types/client';
+import {
+  DEFAULT_CLIENT_SORT_KEY,
+  EMPTY_CLIENT_SEARCH_FILTERS,
+  toClientQueryParams,
+  type ClientSearchFilters,
+  type ClientTo,
+} from '../../types/client';
 
 const section = DATABASE_SECTIONS.find((item) => item.id === 'clientSearch')!;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export function ClientSearchPage() {
+  const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = useState(true);
   const [draftFilters, setDraftFilters] = useState<ClientSearchFilters>(
     EMPTY_CLIENT_SEARCH_FILTERS
@@ -37,7 +43,7 @@ export function ClientSearchPage() {
   const [appliedFilters, setAppliedFilters] = useState<ClientSearchFilters>(
     EMPTY_CLIENT_SEARCH_FILTERS
   );
-  const [clients, setClients] = useState<BankClient[]>([]);
+  const [clients, setClients] = useState<ClientTo[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -47,47 +53,67 @@ export function ClientSearchPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const loadClients = useCallback(async (filters: ClientSearchFilters) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await searchClients(filters);
-      setClients(result.items);
-      setTotal(result.total);
-      setSelectedId(null);
-      setPage(0);
-    } catch {
-      setError('Не удалось выполнить поиск клиентов.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loadClients = useCallback(
+    async (
+      filters: ClientSearchFilters,
+      pageNo: number,
+      pageSize: number
+    ) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await searchClients(
+          toClientQueryParams(filters, {
+            pageNo,
+            pageSize,
+            sortKey: DEFAULT_CLIENT_SORT_KEY,
+          })
+        );
+        setClients(result.content);
+        setTotal(result.metaData.totalElements);
+        setSelectedId(null);
+        setPage(result.metaData.number);
+      } catch {
+        setError('Не удалось выполнить поиск клиентов.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    loadClients(EMPTY_CLIENT_SEARCH_FILTERS);
+    loadClients(EMPTY_CLIENT_SEARCH_FILTERS, 0, rowsPerPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- начальная загрузка
   }, [loadClients]);
 
-  const paginatedClients = clients.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+  const reloadCurrent = useCallback(
+    (filters: ClientSearchFilters, pageNo: number, pageSize: number) => {
+      return loadClients(filters, pageNo, pageSize);
+    },
+    [loadClients]
   );
 
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
-    loadClients(draftFilters);
+    reloadCurrent(draftFilters, 0, rowsPerPage);
   };
 
   const handleResetFilters = () => {
     setDraftFilters(EMPTY_CLIENT_SEARCH_FILTERS);
     setAppliedFilters(EMPTY_CLIENT_SEARCH_FILTERS);
-    loadClients(EMPTY_CLIENT_SEARCH_FILTERS);
+    reloadCurrent(EMPTY_CLIENT_SEARCH_FILTERS, 0, rowsPerPage);
   };
 
   const handleRemoveChip = (key: keyof ClientSearchFilters) => {
-    const next = { ...appliedFilters, [key]: '' };
+    const clearedValue =
+      key === 'statuses'
+        ? ([] as string[])
+        : '';
+    const next = { ...appliedFilters, [key]: clearedValue };
     setAppliedFilters(next);
     setDraftFilters(next);
-    loadClients(next);
+    reloadCurrent(next, 0, rowsPerPage);
   };
 
   const handleDelete = async () => {
@@ -100,7 +126,9 @@ export function ClientSearchPage() {
     try {
       await deleteClient(selectedId);
       setSuccessMessage('Запись успешно удалена.');
-      await loadClients(appliedFilters);
+      const nextPage =
+        clients.length === 1 && page > 0 ? page - 1 : page;
+      await reloadCurrent(appliedFilters, nextPage, rowsPerPage);
     } catch {
       setError('Не удалось удалить запись.');
     } finally {
@@ -112,8 +140,17 @@ export function ClientSearchPage() {
     if (!selectedId) {
       return;
     }
-    // Эндпоинт /edit будет подключён позже.
-    window.console.info(`Редактирование: ${getClientEditPath(selectedId)}`);
+    navigate(getClientEditPath(selectedId));
+  };
+
+  const handlePageChange = (_: unknown, nextPage: number) => {
+    reloadCurrent(appliedFilters, nextPage, rowsPerPage);
+  };
+
+  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextSize = Number(event.target.value);
+    setRowsPerPage(nextSize);
+    reloadCurrent(appliedFilters, 0, nextSize);
   };
 
   return (
@@ -189,20 +226,17 @@ export function ClientSearchPage() {
       ) : (
         <>
           <ClientSearchTable
-            clients={paginatedClients}
+            clients={clients}
             selectedId={selectedId}
-            onSelect={(clientId) => setSelectedId(clientId)}
+            onSelect={setSelectedId}
           />
           <TablePagination
             component="div"
             count={total}
             page={page}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
+            onPageChange={handlePageChange}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(Number(event.target.value));
-              setPage(0);
-            }}
+            onRowsPerPageChange={handleRowsPerPageChange}
             rowsPerPageOptions={PAGE_SIZE_OPTIONS}
             labelRowsPerPage="Выводить на страницу"
             labelDisplayedRows={({ from, to, count }) =>

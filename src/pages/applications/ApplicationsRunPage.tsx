@@ -11,12 +11,15 @@ import {
 import Grid from '@mui/material/Grid2';
 import { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { runApplicationsProcessing } from '../../api/applications/runApi';
-import {
-  APPLICATIONS_HUB_TITLE,
-} from '../../navigation/applicationSections';
+import { runGeneralCheck } from '../../api/applications/runApi';
+import { APPLICATIONS_HUB_TITLE } from '../../navigation/applicationSections';
 import { ROUTES } from '../../navigation/routes';
-import { APPLICATION_TYPE_OPTIONS } from '../../types/applications/enums';
+import {
+  APPLICATION_TYPE_OPTIONS,
+  lookupLabel,
+  STATUS_BUSINESS_LABELS,
+} from '../../types/applications/enums';
+import type { ApplicationType } from '../../types/applications/enums';
 
 export function ApplicationsRunPage() {
   const [date, setDate] = useState('');
@@ -32,11 +35,23 @@ export function ApplicationsRunPage() {
     setInfo(null);
     setSubmitting(true);
     try {
-      await runApplicationsProcessing({
-        date,
-        application_type: applicationType,
+      const response = await runGeneralCheck({
+        applicationType: applicationType as ApplicationType,
+        dateTo: `${date}T23:59:59+00:00`,
       });
-      setInfo('Запрос на запуск обработки отправлен (заглушка).');
+
+      const statusSummary = Object.entries(response.statusCounts ?? {})
+        .filter(([, count]) => count > 0)
+        .map(
+          ([status, count]) =>
+            `${lookupLabel(STATUS_BUSINESS_LABELS, status)}: ${count}`
+        )
+        .join(', ');
+
+      setInfo(
+        `Обработано заявлений: ${response.processedCount}` +
+          (statusSummary ? `. Статусы: ${statusSummary}.` : '.')
+      );
     } catch {
       setError('Не удалось запустить обработку. Повторите попытку позже.');
     } finally {
@@ -66,7 +81,7 @@ export function ApplicationsRunPage() {
         Запуск обработки
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Выберите дату и тип заявления, чтобы запустить обработку.
+        Выберите дату и тип заявления для пакетной обработки заявлений в очереди.
       </Typography>
 
       <Grid container spacing={2}>
@@ -75,7 +90,7 @@ export function ApplicationsRunPage() {
             fullWidth
             size="small"
             type="date"
-            label="Дата *"
+            label="Дата создания по *"
             value={date}
             onChange={(event) => setDate(event.target.value)}
             InputLabelProps={{ shrink: true }}

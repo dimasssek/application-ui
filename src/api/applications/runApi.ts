@@ -1,18 +1,24 @@
-import { delay } from './mockUtils';
+import type { ApplicationType } from '../../types/applications/enums';
+import { ENDPOINTS } from '../endpoints';
+import { httpPost } from '../httpClient';
 
-export type RunProcessingPayload = {
-  date: string;
-  application_type: string;
+export type GeneralCheckRequest = {
+  applicationType: ApplicationType;
+  /** Верхняя граница даты создания (ISO OffsetDateTime). */
+  dateTo: string;
 };
 
-/**
- * POST /api/applications/processing/run
- * Пока заглушка: ничего не делает, кроме логирования.
- */
-export async function runApplicationsProcessing(
-  payload: RunProcessingPayload
-): Promise<void> {
-  await delay(500);
-  // eslint-disable-next-line no-console
-  console.info('runApplicationsProcessing (stub)', payload);
+export type GeneralCheckResponse = {
+  id: string;
+  applicationType: ApplicationType;
+  dateTo: string;
+  processedCount: number;
+  statusCounts: Record<string, number>;
+};
+
+/** POST /general-check */
+export async function runGeneralCheck(
+  payload: GeneralCheckRequest
+): Promise<GeneralCheckResponse> {
+  return httpPost<GeneralCheckResponse>(ENDPOINTS.generalCheck, payload);
 }

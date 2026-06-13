@@ -9,11 +9,9 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import {
-  APPLICATIONS_HUB_TITLE,
-} from '../../navigation/applicationSections';
+import { APPLICATIONS_HUB_TITLE } from '../../navigation/applicationSections';
 import { ROUTES } from '../../navigation/routes';
-import { STATUS_BUSINESS } from '../../types/applications/enums';
+import { DEFAULT_APPLICATION_SORT_KEY } from '../../types/applications/common';
 import {
   isQueued,
   type ApplicationConfig,
@@ -27,28 +25,26 @@ import { ApplicationToolbar } from './ApplicationToolbar';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
-function stripId<TDto extends { id: string }>(
-  values: TDto
-): Omit<TDto, 'id'> {
-  const copy = { ...values } as Partial<TDto>;
-  delete copy.id;
-  return copy as Omit<TDto, 'id'>;
-}
-
 type ApplicationListPageProps<
-  TDto extends { id: string; status_business: string },
+  TDto extends { id: string; statusBusiness: string },
   TFilters extends Record<string, string>,
+  TQueryParams,
+  TCreate = Record<string, unknown>,
+  TUpdate = Record<string, unknown>,
 > = {
-  config: ApplicationConfig<TDto, TFilters>;
+  config: ApplicationConfig<TDto, TFilters, TQueryParams, TCreate, TUpdate>;
 };
 
 export function ApplicationListPage<
-  TDto extends { id: string; status_business: string } & Record<
+  TDto extends { id: string; statusBusiness: string } & Record<
     string,
     unknown
   >,
   TFilters extends Record<string, string>,
->({ config }: ApplicationListPageProps<TDto, TFilters>) {
+  TQueryParams,
+  TCreate = Record<string, unknown>,
+  TUpdate = Record<string, unknown>,
+>({ config }: ApplicationListPageProps<TDto, TFilters, TQueryParams, TCreate, TUpdate>) {
   const [filterOpen, setFilterOpen] = useState(true);
   const [draftFilters, setDraftFilters] = useState<TFilters>(
     config.emptyFilters
@@ -68,55 +64,64 @@ export function ApplicationListPage<
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<ApplicationFormMode>('create');
-  const [dialogInitialValues, setDialogInitialValues] = useState<Partial<TDto>>(
-    {}
-  );
+  const [dialogInitialValues, setDialogInitialValues] = useState<
+    Record<string, unknown>
+  >({});
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const loadItems = useCallback(
-    async (filters: TFilters) => {
+    async (filters: TFilters, pageNo: number, pageSize: number) => {
       setLoading(true);
       setError(null);
       try {
-        const result = await config.api.search(filters);
-        setItems(result.items);
-        setTotal(result.total);
+        const result = await config.api.search(
+          config.toQueryParams(filters, {
+            pageNo,
+            pageSize,
+            sortKey: DEFAULT_APPLICATION_SORT_KEY,
+          })
+        );
+        setItems(result.content);
+        setTotal(result.metaData.totalElements);
         setSelectedId(null);
-        setPage(0);
+        setPage(result.metaData.number);
       } catch {
         setError('Не удалось загрузить список заявлений.');
       } finally {
         setLoading(false);
       }
     },
-    [config.api]
+    [config]
   );
 
   useEffect(() => {
-    loadItems(config.emptyFilters);
-  }, [loadItems, config.emptyFilters]);
+    loadItems(config.emptyFilters, 0, rowsPerPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- начальная загрузка
+  }, [loadItems]);
 
-  const paginated = items.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+  const reloadCurrent = useCallback(
+    (filters: TFilters, pageNo: number, pageSize: number) => {
+      return loadItems(filters, pageNo, pageSize);
+    },
+    [loadItems]
   );
 
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
-    loadItems(draftFilters);
+    reloadCurrent(draftFilters, 0, rowsPerPage);
   };
 
   const handleResetFilters = () => {
     setDraftFilters(config.emptyFilters);
     setAppliedFilters(config.emptyFilters);
-    loadItems(config.emptyFilters);
+    reloadCurrent(config.emptyFilters, 0, rowsPerPage);
   };
 
   const handleRemoveChip = (key: keyof TFilters & string) => {
     const next = { ...appliedFilters, [key]: '' };
     setAppliedFilters(next);
     setDraftFilters(next);
-    loadItems(next);
+    reloadCurrent(next, 0, rowsPerPage);
   };
 
   const handleAdd = () => {
@@ -127,7 +132,7 @@ export function ApplicationListPage<
   };
 
   const handleEditRow = (item: TDto) => {
-    if (!isQueued(item.status_business)) {
+    if (!isQueued(item.statusBusiness)) {
       return;
     }
     setDialogMode('edit');
@@ -146,7 +151,7 @@ export function ApplicationListPage<
     try {
       await config.api.delete(selectedId);
       setSuccessMessage('Заявление удалено.');
-      await loadItems(appliedFilters);
+      await reloadCurrent(appliedFilters, page, rowsPerPage);
     } catch {
       setError('Не удалось удалить заявление.');
     } finally {
@@ -154,25 +159,22 @@ export function ApplicationListPage<
     }
   };
 
-  const handleSubmitDialog = async (values: TDto) => {
+  const handleSubmitDialog = async (payload: Record<string, unknown>) => {
     setMutating(true);
     setError(null);
     setSuccessMessage(null);
     try {
       if (dialogMode === 'create') {
-        const payload = stripId(values);
-        const created = await config.api.create(payload);
+        const created = await config.api.create(payload as TCreate);
         setSuccessMessage(`Заявление ${created.number ?? ''} создано.`.trim());
+        setDialogOpen(false);
+        await reloadCurrent(appliedFilters, 0, rowsPerPage);
       } else if (editingId) {
-        const payload: Partial<TDto> = {
-          ...values,
-          status_business: STATUS_BUSINESS.QUEUED,
-        };
-        await config.api.update(editingId, payload);
+        await config.api.update(editingId, payload as TUpdate);
         setSuccessMessage('Изменения сохранены.');
+        setDialogOpen(false);
+        await reloadCurrent(appliedFilters, page, rowsPerPage);
       }
-      setDialogOpen(false);
-      await loadItems(appliedFilters);
     } catch {
       setError(
         dialogMode === 'create'
@@ -264,7 +266,7 @@ export function ApplicationListPage<
       ) : (
         <>
           <ApplicationTable
-            items={paginated}
+            items={items}
             columns={config.columns}
             selectedId={selectedId}
             onSelect={setSelectedId}
@@ -274,11 +276,14 @@ export function ApplicationListPage<
             component="div"
             count={total}
             page={page}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
+            onPageChange={(_, nextPage) => {
+              reloadCurrent(appliedFilters, nextPage, rowsPerPage);
+            }}
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={(event) => {
-              setRowsPerPage(Number(event.target.value));
-              setPage(0);
+              const nextSize = Number(event.target.value);
+              setRowsPerPage(nextSize);
+              reloadCurrent(appliedFilters, 0, nextSize);
             }}
             rowsPerPageOptions={PAGE_SIZE_OPTIONS}
             labelRowsPerPage="Выводить на страницу"
@@ -289,7 +294,7 @@ export function ApplicationListPage<
         </>
       )}
 
-      <ApplicationFormDialog<TDto>
+      <ApplicationFormDialog
         open={dialogOpen}
         mode={dialogMode}
         title={config.title}

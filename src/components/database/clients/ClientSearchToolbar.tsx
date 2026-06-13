@@ -63,13 +63,7 @@ export function ClientSearchToolbar({
       </Typography>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Tooltip
-          title={
-            hasSelection
-              ? 'Редактировать (будет доступно позже)'
-              : 'Выберите запись в таблице'
-          }
-        >
+        <Tooltip title={hasSelection ? 'Редактировать' : 'Выберите запись в таблице'}>
           <span>
             <IconButton
               onClick={onEdit}

@@ -10,8 +10,12 @@ import { ProfileChangeApplicationsPage } from './pages/applications/ProfileChang
 import { DocumentApplicationsPage } from './pages/applications/DocumentApplicationsPage';
 import { ClaimApplicationsPage } from './pages/applications/ClaimApplicationsPage';
 import { AuthorityApplicationsPage } from './pages/applications/AuthorityApplicationsPage';
-import { DatabaseFeatureRoute } from './pages/database/DatabaseFeatureRoute';
+import { InteragencyDetailPage } from './pages/database/InteragencyDetailPage';
+import { InteragencyManualCreatePage } from './pages/database/InteragencyManualCreatePage';
+import { InteragencySearchPage } from './pages/database/InteragencySearchPage';
 import { DatabaseHubPage } from './pages/database/DatabaseHubPage';
+import { ClientAddPage } from './pages/database/ClientAddPage';
+import { ClientEditPage } from './pages/database/ClientEditPage';
 import { ClientSearchPage } from './pages/database/ClientSearchPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ROUTES } from './navigation/routes';
@@ -28,12 +32,24 @@ function App() {
             element={<ClientSearchPage />}
           />
           <Route
+            path={ROUTES.databaseClientEdit}
+            element={<ClientEditPage />}
+          />
+          <Route
             path={ROUTES.databaseClientAdd}
-            element={<DatabaseFeatureRoute sectionId="clientAdd" />}
+            element={<ClientAddPage />}
           />
           <Route
             path={ROUTES.databaseInteragency}
-            element={<DatabaseFeatureRoute sectionId="interagency" />}
+            element={<InteragencySearchPage />}
+          />
+          <Route
+            path={ROUTES.databaseInteragencyManualCreate}
+            element={<InteragencyManualCreatePage />}
+          />
+          <Route
+            path={ROUTES.databaseInteragencyDetail}
+            element={<InteragencyDetailPage />}
           />
           <Route path={ROUTES.applications} element={<ApplicationsHubPage />} />
           <Route

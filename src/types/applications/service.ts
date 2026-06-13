@@ -1,46 +1,74 @@
-/**
- * Заявление на банковскую услугу.
- * Поля общей части (application) + поля service_application.
- */
-export type ServiceApplication = {
-  id: string;
-  client_id: string;
-  number: string;
-  application_type: string;
-  channel: string;
-  status_internal: string;
-  status_business: string;
-  reason: string;
-  created_date: string;
-  closed_date: string | null;
+import type {
+  ApplicationCreateRequest,
+  ApplicationTo,
+  ApplicationUpdateRequest,
+  BaseApplicationQueryParams,
+  BaseApplicationSearchFilters,
+} from './common';
+import {
+  EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+  mergeQueryParams,
+  toBaseApplicationQueryParams,
+} from './common';
+import type { ServiceActionType, ServiceType } from './enums';
 
-  service_type: string;
-  service_name: string;
-  action_type: string;
+export type ServiceApplication = ApplicationTo & {
+  serviceType: ServiceType;
+  serviceName: string;
+  actionType: ServiceActionType;
 };
 
-export type ServiceApplicationFilters = {
-  status_business: string;
-  reason: string;
-  number: string;
-  channel: string;
-  created_date: string;
-  closed_date: string;
-
-  service_type: string;
-  service_name: string;
-  action_type: string;
+export type ServiceApplicationCreateRequest = ApplicationCreateRequest & {
+  serviceType: ServiceType;
+  serviceName: string;
+  actionType: ServiceActionType;
 };
 
-export const EMPTY_SERVICE_APPLICATION_FILTERS: ServiceApplicationFilters = {
-  status_business: '',
-  reason: '',
-  number: '',
-  channel: '',
-  created_date: '',
-  closed_date: '',
-
-  service_type: '',
-  service_name: '',
-  action_type: '',
+export type ServiceApplicationUpdateRequest = ApplicationUpdateRequest & {
+  serviceType: ServiceType;
+  serviceName: string;
+  actionType: ServiceActionType;
 };
+
+export type ServiceApplicationQueryParams = BaseApplicationQueryParams & {
+  serviceType?: ServiceType;
+  serviceName?: string;
+  actionType?: ServiceActionType;
+};
+
+export type ServiceApplicationSearchFilters = BaseApplicationSearchFilters & {
+  serviceType: string;
+  serviceName: string;
+  actionType: string;
+};
+
+export const EMPTY_SERVICE_APPLICATION_SEARCH_FILTERS: ServiceApplicationSearchFilters =
+  {
+    ...EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+    serviceType: '',
+    serviceName: '',
+    actionType: '',
+  };
+
+export function toServiceApplicationQueryParams(
+  filters: ServiceApplicationSearchFilters,
+  pagination?: Pick<BaseApplicationQueryParams, 'pageNo' | 'pageSize' | 'sortKey'>
+): ServiceApplicationQueryParams {
+  const base = toBaseApplicationQueryParams(filters, pagination);
+  const specific: Omit<
+    ServiceApplicationQueryParams,
+    keyof BaseApplicationQueryParams
+  > = {};
+
+  if (filters.serviceType.trim()) {
+    specific.serviceType = filters.serviceType as ServiceType;
+  }
+  if (filters.serviceName.trim()) {
+    specific.serviceName = filters.serviceName.trim();
+  }
+  if (filters.actionType.trim()) {
+    specific.actionType = filters.actionType as ServiceActionType;
+  }
+
+  return mergeQueryParams(base, specific);
+}

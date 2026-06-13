@@ -8,10 +8,11 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import type { BankClient } from '../../../types/client';
-import { CLIENT_TABLE_COLUMNS } from './clientTableColumns';
+import { lookupLabel } from '../../../types/client/enums';
+import type { ClientTo } from '../../../types/client';
+import { CLIENT_TABLE_COLUMNS, type ClientTableColumn } from './clientTableColumns';
 
-function formatActualDate(value: string) {
+function formatDateTime(value: string | null) {
   if (!value) {
     return '';
   }
@@ -22,8 +23,33 @@ function formatActualDate(value: string) {
   return date.toLocaleString('ru-RU');
 }
 
+function formatCellValue(client: ClientTo, column: ClientTableColumn): string {
+  const key = column.key;
+
+  if (key === 'actualDate') {
+    return formatDateTime(client.actualDate);
+  }
+  if (key === 'addressDefined') {
+    return client.addressDefined ? 'Да' : 'Нет';
+  }
+  if (key === 'status') {
+    return lookupLabel(column.labels ?? {}, client.status);
+  }
+
+  const raw = client[key as keyof ClientTo];
+  if (raw == null || raw === '') {
+    return '';
+  }
+  const value = String(raw);
+
+  if (column.labels) {
+    return lookupLabel(column.labels, value);
+  }
+  return value;
+}
+
 type ClientSearchTableProps = {
-  clients: BankClient[];
+  clients: ClientTo[];
   selectedId: string | null;
   onSelect: (clientId: string | null) => void;
 };
@@ -33,13 +59,6 @@ export function ClientSearchTable({
   selectedId,
   onSelect,
 }: ClientSearchTableProps) {
-  const getCellValue = (client: BankClient, key: keyof BankClient) => {
-    if (key === 'actualDate') {
-      return formatActualDate(client.actualDate);
-    }
-    return client[key];
-  };
-
   const toggleSelection = (clientId: string) => {
     onSelect(selectedId === clientId ? null : clientId);
   };
@@ -89,7 +108,7 @@ export function ClientSearchTable({
                   </TableCell>
                   {CLIENT_TABLE_COLUMNS.map((column) => (
                     <TableCell key={column.key}>
-                      {getCellValue(client, column.key)}
+                      {formatCellValue(client, column)}
                     </TableCell>
                   ))}
                 </TableRow>

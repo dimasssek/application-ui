@@ -1,15 +1,20 @@
 import {
-  Box,
   Button,
   Collapse,
+  MenuItem,
   Paper,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
+import { MultiSelectField } from '../../reports/MultiSelectField';
 import type { ClientSearchFilters } from '../../../types/client';
-import { CLIENT_FILTER_FIELDS } from './clientTableColumns';
+import {
+  CLIENT_FILTER_FIELDS,
+  CLIENT_STATUS_OPTIONS,
+  GENDER_OPTIONS,
+} from './clientTableColumns';
 
 type ClientSearchFilterPanelProps = {
   open: boolean;
@@ -26,7 +31,10 @@ export function ClientSearchFilterPanel({
   onApply,
   onReset,
 }: ClientSearchFilterPanelProps) {
-  const updateField = (key: keyof ClientSearchFilters, value: string) => {
+  const updateField = <K extends keyof ClientSearchFilters>(
+    key: K,
+    value: ClientSearchFilters[K]
+  ) => {
     onChange({ ...values, [key]: value });
   };
 
@@ -52,21 +60,59 @@ export function ClientSearchFilterPanel({
               key={field.key}
               size={field.gridSize ?? { xs: 12, md: 4 }}
             >
-              <TextField
-                fullWidth
-                size="small"
-                label={field.label}
-                type={field.type === 'text' ? 'text' : field.type}
-                value={values[field.key]}
-                onChange={(event) =>
-                  updateField(field.key, event.target.value)
-                }
-                InputLabelProps={
-                  field.type === 'date' || field.type === 'datetime-local'
-                    ? { shrink: true }
-                    : undefined
-                }
-              />
+              {field.type === 'select' ? (
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label={field.label}
+                  value={values[field.key] as string}
+                  onChange={(event) =>
+                    updateField(field.key, event.target.value)
+                  }
+                  InputLabelProps={{ shrink: true }}
+                  SelectProps={{ displayEmpty: true }}
+                >
+                  <MenuItem value="">
+                    <em>Любое</em>
+                  </MenuItem>
+                  {GENDER_OPTIONS.map((option) => (
+                    <MenuItem key={option.code} value={option.code}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              ) : field.type === 'statuses' ? (
+                <>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.75 }}
+                  >
+                    {field.label}
+                  </Typography>
+                  <MultiSelectField
+                    options={CLIENT_STATUS_OPTIONS}
+                    value={values.statuses}
+                    onChange={(next) => updateField('statuses', next)}
+                    placeholder="Любой"
+                  />
+                </>
+              ) : (
+                <TextField
+                  fullWidth
+                  size="small"
+                  label={field.label}
+                  type={field.type === 'date' ? 'date' : 'text'}
+                  value={values[field.key] as string}
+                  onChange={(event) =>
+                    updateField(field.key, event.target.value)
+                  }
+                  InputLabelProps={
+                    field.type === 'date' ? { shrink: true } : undefined
+                  }
+                />
+              )}
             </Grid>
           ))}
         </Grid>

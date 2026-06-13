@@ -1,50 +1,71 @@
-/**
- * Заявление на полномочия и доступы.
- * Поля общей части (application) + поля authority_application.
- */
-export type AuthorityApplication = {
-  id: string;
-  client_id: string;
-  number: string;
-  application_type: string;
-  channel: string;
-  status_internal: string;
-  status_business: string;
-  reason: string;
-  created_date: string;
-  closed_date: string | null;
+import type {
+  ApplicationCreateRequest,
+  ApplicationTo,
+  ApplicationUpdateRequest,
+  BaseApplicationQueryParams,
+  BaseApplicationSearchFilters,
+} from './common';
+import {
+  EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+  mergeQueryParams,
+  toBaseApplicationQueryParams,
+} from './common';
+import type { AuthorityType } from './enums';
 
-  authority_type: string;
-  person_name: string;
-  document_number: string;
-  valid_until: string;
+export type AuthorityApplication = ApplicationTo & {
+  authorityType: AuthorityType;
+  personName: string;
+  documentNumber: string | null;
+  validUntil: string | null;
 };
 
-export type AuthorityApplicationFilters = {
-  status_business: string;
-  reason: string;
-  number: string;
-  channel: string;
-  created_date: string;
-  closed_date: string;
-
-  authority_type: string;
-  person_name: string;
-  document_number: string;
-  valid_until: string;
+export type AuthorityApplicationCreateRequest = ApplicationCreateRequest & {
+  authorityType: AuthorityType;
+  personName: string;
+  documentNumber?: string | null;
+  validUntil?: string | null;
 };
 
-export const EMPTY_AUTHORITY_APPLICATION_FILTERS: AuthorityApplicationFilters =
+export type AuthorityApplicationUpdateRequest = ApplicationUpdateRequest & {
+  authorityType: AuthorityType;
+  personName: string;
+  documentNumber?: string | null;
+  validUntil?: string | null;
+};
+
+export type AuthorityApplicationQueryParams = BaseApplicationQueryParams & {
+  authorityType?: AuthorityType;
+  personName?: string;
+};
+
+export type AuthorityApplicationSearchFilters = BaseApplicationSearchFilters & {
+  authorityType: string;
+  personName: string;
+};
+
+export const EMPTY_AUTHORITY_APPLICATION_SEARCH_FILTERS: AuthorityApplicationSearchFilters =
   {
-    status_business: '',
-    reason: '',
-    number: '',
-    channel: '',
-    created_date: '',
-    closed_date: '',
-
-    authority_type: '',
-    person_name: '',
-    document_number: '',
-    valid_until: '',
+    ...EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+    authorityType: '',
+    personName: '',
   };
+
+export function toAuthorityApplicationQueryParams(
+  filters: AuthorityApplicationSearchFilters,
+  pagination?: Pick<BaseApplicationQueryParams, 'pageNo' | 'pageSize' | 'sortKey'>
+): AuthorityApplicationQueryParams {
+  const base = toBaseApplicationQueryParams(filters, pagination);
+  const specific: Omit<
+    AuthorityApplicationQueryParams,
+    keyof BaseApplicationQueryParams
+  > = {};
+
+  if (filters.authorityType.trim()) {
+    specific.authorityType = filters.authorityType as AuthorityType;
+  }
+  if (filters.personName.trim()) {
+    specific.personName = filters.personName.trim();
+  }
+
+  return mergeQueryParams(base, specific);
+}

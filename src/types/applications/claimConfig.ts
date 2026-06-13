@@ -5,15 +5,20 @@ import {
   updateClaimApplication,
 } from '../../api/applications/claimApplicationApi';
 import { ROUTES } from '../../navigation/routes';
-import { MOCK_CLIENT_ID } from './common';
 import { APPLICATION_TYPE } from './enums';
 import {
-  EMPTY_CLAIM_APPLICATION_FILTERS,
+  EMPTY_CLAIM_APPLICATION_SEARCH_FILTERS,
   type ClaimApplication,
-  type ClaimApplicationFilters,
+  type ClaimApplicationCreateRequest,
+  type ClaimApplicationQueryParams,
+  type ClaimApplicationSearchFilters,
+  type ClaimApplicationUpdateRequest,
+  toClaimApplicationQueryParams,
 } from './claim';
 import {
-  buildCommonDefaults,
+  buildClientFormDefaults,
+  CLAIM_TYPE_LABELS,
+  CLAIM_TYPE_OPTIONS,
   COMMON_COLUMNS,
   COMMON_FILTER_FIELDS,
   COMMON_FORM_FIELDS,
@@ -22,54 +27,54 @@ import {
   type FieldConfig,
 } from './registry';
 
-const CLAIM_FILTER_FIELDS: FieldConfig<keyof ClaimApplicationFilters & string>[] =
-  [
-    ...(COMMON_FILTER_FIELDS as FieldConfig<keyof ClaimApplicationFilters & string>[]),
-    {
-      key: 'claim_type',
-      label: 'Тип претензии',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'claim_subject',
-      label: 'Тема',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'external_ref',
-      label: 'Внешний номер',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'description',
-      label: 'Описание',
-      type: 'text',
-      gridSize: { xs: 12, md: 12 },
-    },
-  ];
+const CLAIM_FILTER_FIELDS: FieldConfig<
+  keyof ClaimApplicationSearchFilters & string
+>[] = [
+  ...(COMMON_FILTER_FIELDS as FieldConfig<
+    keyof ClaimApplicationSearchFilters & string
+  >[]),
+  {
+    key: 'claimType',
+    label: 'Тип претензии',
+    type: 'select',
+    options: CLAIM_TYPE_OPTIONS,
+    labels: CLAIM_TYPE_LABELS,
+    gridSize: { xs: 12, md: 4 },
+  },
+  {
+    key: 'claimSubject',
+    label: 'Тема',
+    type: 'text',
+    gridSize: { xs: 12, md: 4 },
+  },
+];
 
 const CLAIM_COLUMNS: ColumnConfig<keyof ClaimApplication & string>[] = [
   ...(COMMON_COLUMNS as ColumnConfig<keyof ClaimApplication & string>[]),
-  { key: 'claim_type', label: 'Тип', minWidth: 160 },
-  { key: 'claim_subject', label: 'Тема', minWidth: 200 },
+  {
+    key: 'claimType',
+    label: 'Тип',
+    minWidth: 160,
+    labels: CLAIM_TYPE_LABELS,
+  },
+  { key: 'claimSubject', label: 'Тема', minWidth: 200 },
   { key: 'description', label: 'Описание', minWidth: 240 },
-  { key: 'external_ref', label: 'Внешний номер', minWidth: 160 },
+  { key: 'externalRef', label: 'Внешний номер', minWidth: 160 },
 ];
 
 const CLAIM_FORM_FIELDS: FieldConfig<keyof ClaimApplication & string>[] = [
   ...(COMMON_FORM_FIELDS as FieldConfig<keyof ClaimApplication & string>[]),
   {
-    key: 'claim_type',
+    key: 'claimType',
     label: 'Тип претензии',
-    type: 'text',
+    type: 'select',
+    options: CLAIM_TYPE_OPTIONS,
+    labels: CLAIM_TYPE_LABELS,
     required: true,
     gridSize: { xs: 12, md: 6 },
   },
   {
-    key: 'claim_subject',
+    key: 'claimSubject',
     label: 'Тема',
     type: 'text',
     required: true,
@@ -79,11 +84,10 @@ const CLAIM_FORM_FIELDS: FieldConfig<keyof ClaimApplication & string>[] = [
     key: 'description',
     label: 'Описание',
     type: 'textarea',
-    required: true,
     gridSize: { xs: 12, md: 12 },
   },
   {
-    key: 'external_ref',
+    key: 'externalRef',
     label: 'Внешний номер',
     type: 'text',
     gridSize: { xs: 12, md: 6 },
@@ -92,25 +96,28 @@ const CLAIM_FORM_FIELDS: FieldConfig<keyof ClaimApplication & string>[] = [
 
 export const CLAIM_APPLICATION_CONFIG: ApplicationConfig<
   ClaimApplication,
-  ClaimApplicationFilters
+  ClaimApplicationSearchFilters,
+  ClaimApplicationQueryParams,
+  ClaimApplicationCreateRequest,
+  ClaimApplicationUpdateRequest
 > = {
   title: 'Претензии и обращения',
   description:
     'Список претензий, жалоб и обращений клиентов, поступающих по разным каналам.',
   path: ROUTES.applicationsClaims,
   applicationTypeCode: APPLICATION_TYPE.CLAIM,
-  emptyFilters: EMPTY_CLAIM_APPLICATION_FILTERS,
+  emptyFilters: EMPTY_CLAIM_APPLICATION_SEARCH_FILTERS,
   filterFields: CLAIM_FILTER_FIELDS,
   columns: CLAIM_COLUMNS,
   formFields: CLAIM_FORM_FIELDS,
   buildDefaults: () => ({
-    ...buildCommonDefaults(APPLICATION_TYPE.CLAIM),
-    client_id: MOCK_CLIENT_ID,
-    claim_type: '',
-    claim_subject: '',
+    ...buildClientFormDefaults(),
+    claimType: '',
+    claimSubject: '',
     description: '',
-    external_ref: '',
+    externalRef: '',
   }),
+  toQueryParams: toClaimApplicationQueryParams,
   api: {
     search: searchClaimApplications,
     create: createClaimApplication,

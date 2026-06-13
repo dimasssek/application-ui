@@ -1,13 +1,9 @@
-function delay(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+import { ENDPOINTS } from './endpoints';
+import { ApiError, httpPostMultipart } from './httpClient';
 
 export type ApplicationUploadResponse = {
-  uploadId: string;
-  fileName: string;
-  status: 'SUCCESS';
+  uploaded: boolean;
+  detailedError: string | null;
 };
 
 export class ApplicationUploadApiError extends Error {
@@ -17,21 +13,34 @@ export class ApplicationUploadApiError extends Error {
   }
 }
 
-/** POST /api/applications/upload */
+/** POST /applications/upload (multipart, part name: file) */
 export async function uploadApplicationFile(
   file: File
 ): Promise<ApplicationUploadResponse> {
-  await delay(500);
+  const formData = new FormData();
+  formData.append('file', file);
 
-  if (!file.name.toLowerCase().endsWith('.txt')) {
-    throw new ApplicationUploadApiError(
-      `Файл «${file.name}» обработать не получится. Допустим только формат .txt.`
+  try {
+    const response = await httpPostMultipart<ApplicationUploadResponse>(
+      ENDPOINTS.applicationsUpload,
+      formData
     );
-  }
 
-  return {
-    uploadId: `mock-application-upload-${Date.now()}`,
-    fileName: file.name,
-    status: 'SUCCESS',
-  };
+    if (!response.uploaded) {
+      throw new ApplicationUploadApiError(
+        response.detailedError ??
+          `Файл «${file.name}» обработать не получилось.`
+      );
+    }
+
+    return response;
+  } catch (error) {
+    if (error instanceof ApplicationUploadApiError) {
+      throw error;
+    }
+    if (error instanceof ApiError) {
+      throw new ApplicationUploadApiError(error.message);
+    }
+    throw error;
+  }
 }

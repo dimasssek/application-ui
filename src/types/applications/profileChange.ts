@@ -1,47 +1,66 @@
-/**
- * Заявление на изменение данных клиента.
- * Поля общей части (application) + поля profile_change_application.
- */
-export type ProfileChangeApplication = {
-  id: string;
-  client_id: string;
-  number: string;
-  application_type: string;
-  channel: string;
-  status_internal: string;
-  status_business: string;
-  reason: string;
-  created_date: string;
-  closed_date: string | null;
+import type {
+  ApplicationCreateRequest,
+  ApplicationTo,
+  ApplicationUpdateRequest,
+  BaseApplicationQueryParams,
+  BaseApplicationSearchFilters,
+} from './common';
+import {
+  EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+  mergeQueryParams,
+  toBaseApplicationQueryParams,
+} from './common';
+import type { ClientChangeType } from './enums';
 
-  change_type: string;
-  old_value: string;
-  new_value: string;
+export type ProfileChangeApplication = ApplicationTo & {
+  changeType: ClientChangeType;
+  oldValue: string | null;
+  newValue: string | null;
 };
 
-export type ProfileChangeApplicationFilters = {
-  status_business: string;
-  reason: string;
-  number: string;
-  channel: string;
-  created_date: string;
-  closed_date: string;
-
-  change_type: string;
-  old_value: string;
-  new_value: string;
-};
-
-export const EMPTY_PROFILE_CHANGE_APPLICATION_FILTERS: ProfileChangeApplicationFilters =
-  {
-    status_business: '',
-    reason: '',
-    number: '',
-    channel: '',
-    created_date: '',
-    closed_date: '',
-
-    change_type: '',
-    old_value: '',
-    new_value: '',
+export type ProfileChangeApplicationCreateRequest =
+  ApplicationCreateRequest & {
+    changeType: ClientChangeType;
+    oldValue?: string | null;
+    newValue?: string | null;
   };
+
+export type ProfileChangeApplicationUpdateRequest =
+  ApplicationUpdateRequest & {
+    changeType: ClientChangeType;
+    oldValue?: string | null;
+    newValue?: string | null;
+  };
+
+export type ProfileChangeApplicationQueryParams =
+  BaseApplicationQueryParams & {
+    changeType?: ClientChangeType;
+  };
+
+export type ProfileChangeApplicationSearchFilters =
+  BaseApplicationSearchFilters & {
+    changeType: string;
+  };
+
+export const EMPTY_PROFILE_CHANGE_APPLICATION_SEARCH_FILTERS: ProfileChangeApplicationSearchFilters =
+  {
+    ...EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+    changeType: '',
+  };
+
+export function toProfileChangeApplicationQueryParams(
+  filters: ProfileChangeApplicationSearchFilters,
+  pagination?: Pick<BaseApplicationQueryParams, 'pageNo' | 'pageSize' | 'sortKey'>
+): ProfileChangeApplicationQueryParams {
+  const base = toBaseApplicationQueryParams(filters, pagination);
+  const specific: Omit<
+    ProfileChangeApplicationQueryParams,
+    keyof BaseApplicationQueryParams
+  > = {};
+
+  if (filters.changeType.trim()) {
+    specific.changeType = filters.changeType as ClientChangeType;
+  }
+
+  return mergeQueryParams(base, specific);
+}

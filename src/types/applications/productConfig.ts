@@ -5,149 +5,110 @@ import {
   updateProductApplication,
 } from '../../api/applications/productApplicationApi';
 import { ROUTES } from '../../navigation/routes';
-import { MOCK_CLIENT_ID } from './common';
 import { APPLICATION_TYPE } from './enums';
 import {
-  EMPTY_PRODUCT_APPLICATION_FILTERS,
+  EMPTY_PRODUCT_APPLICATION_SEARCH_FILTERS,
   type ProductApplication,
-  type ProductApplicationFilters,
+  type ProductApplicationCreateRequest,
+  type ProductApplicationQueryParams,
+  type ProductApplicationSearchFilters,
+  type ProductApplicationUpdateRequest,
+  toProductApplicationQueryParams,
 } from './product';
 import {
-  buildCommonDefaults,
+  buildClientFormDefaults,
   COMMON_COLUMNS,
   COMMON_FILTER_FIELDS,
   COMMON_FORM_FIELDS,
-  CURRENCY_FIELD,
+  PRODUCT_CATEGORY_LABELS,
+  PRODUCT_CATEGORY_OPTIONS,
   type ApplicationConfig,
   type ColumnConfig,
   type FieldConfig,
 } from './registry';
 
-const PRODUCT_FILTER_FIELDS: FieldConfig<keyof ProductApplicationFilters & string>[] =
-  [
-    ...(COMMON_FILTER_FIELDS as FieldConfig<keyof ProductApplicationFilters & string>[]),
-    {
-      key: 'product_name',
-      label: 'Продукт',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'product_category',
-      label: 'Категория',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'product_code',
-      label: 'Код продукта',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'currency',
-      label: 'Валюта',
-      type: 'select',
-      options: CURRENCY_FIELD.options,
-      labels: CURRENCY_FIELD.labels,
-      gridSize: { xs: 12, md: 3 },
-    },
-    {
-      key: 'amount',
-      label: 'Сумма',
-      type: 'text',
-      gridSize: { xs: 12, md: 3 },
-    },
-    {
-      key: 'term_months',
-      label: 'Срок, мес',
-      type: 'text',
-      gridSize: { xs: 12, md: 3 },
-    },
-    {
-      key: 'tariff_code',
-      label: 'Тариф',
-      type: 'text',
-      gridSize: { xs: 12, md: 3 },
-    },
-    {
-      key: 'purpose',
-      label: 'Назначение',
-      type: 'text',
-      gridSize: { xs: 12, md: 6 },
-    },
-    {
-      key: 'external_product_id',
-      label: 'Внешний ID',
-      type: 'text',
-      gridSize: { xs: 12, md: 6 },
-    },
-  ];
+const PRODUCT_FILTER_FIELDS: FieldConfig<
+  keyof ProductApplicationSearchFilters & string
+>[] = [
+  ...(COMMON_FILTER_FIELDS as FieldConfig<
+    keyof ProductApplicationSearchFilters & string
+  >[]),
+  {
+    key: 'productCategory',
+    label: 'Категория',
+    type: 'select',
+    options: PRODUCT_CATEGORY_OPTIONS,
+    labels: PRODUCT_CATEGORY_LABELS,
+    gridSize: { xs: 12, md: 4 },
+  },
+  {
+    key: 'productCode',
+    label: 'Код продукта',
+    type: 'text',
+    gridSize: { xs: 12, md: 4 },
+  },
+  {
+    key: 'productName',
+    label: 'Продукт',
+    type: 'text',
+    gridSize: { xs: 12, md: 4 },
+  },
+];
 
 const PRODUCT_COLUMNS: ColumnConfig<keyof ProductApplication & string>[] = [
   ...(COMMON_COLUMNS as ColumnConfig<keyof ProductApplication & string>[]),
-  { key: 'product_name', label: 'Продукт', minWidth: 200 },
-  { key: 'product_category', label: 'Категория', minWidth: 140 },
   {
-    key: 'currency',
-    label: 'Валюта',
-    minWidth: 90,
-    labels: CURRENCY_FIELD.labels,
+    key: 'productCategory',
+    label: 'Категория',
+    minWidth: 140,
+    labels: PRODUCT_CATEGORY_LABELS,
   },
+  { key: 'productName', label: 'Продукт', minWidth: 200 },
   { key: 'amount', label: 'Сумма', minWidth: 120 },
-  { key: 'term_months', label: 'Срок, мес', minWidth: 110 },
+  { key: 'termMonths', label: 'Срок, мес', minWidth: 110 },
 ];
 
 const PRODUCT_FORM_FIELDS: FieldConfig<keyof ProductApplication & string>[] = [
   ...(COMMON_FORM_FIELDS as FieldConfig<keyof ProductApplication & string>[]),
   {
-    key: 'product_category',
+    key: 'productCategory',
     label: 'Категория',
-    type: 'text',
+    type: 'select',
+    options: PRODUCT_CATEGORY_OPTIONS,
+    labels: PRODUCT_CATEGORY_LABELS,
     required: true,
     gridSize: { xs: 12, md: 6 },
   },
   {
-    key: 'product_code',
+    key: 'productCode',
     label: 'Код продукта',
     type: 'text',
-    required: true,
     gridSize: { xs: 12, md: 6 },
   },
   {
-    key: 'product_name',
+    key: 'productName',
     label: 'Название продукта',
     type: 'text',
     required: true,
     gridSize: { xs: 12, md: 12 },
   },
   {
-    key: 'currency',
-    label: 'Валюта',
-    type: 'select',
-    options: CURRENCY_FIELD.options,
-    labels: CURRENCY_FIELD.labels,
-    required: true,
-    gridSize: { xs: 12, md: 3 },
-  },
-  {
     key: 'amount',
     label: 'Сумма',
-    type: 'text',
-    required: true,
-    gridSize: { xs: 12, md: 3 },
+    type: 'number',
+    gridSize: { xs: 12, md: 4 },
   },
   {
-    key: 'term_months',
+    key: 'termMonths',
     label: 'Срок, мес',
-    type: 'text',
-    gridSize: { xs: 12, md: 3 },
+    type: 'number',
+    gridSize: { xs: 12, md: 4 },
   },
   {
-    key: 'tariff_code',
+    key: 'tariffCode',
     label: 'Код тарифа',
     type: 'text',
-    gridSize: { xs: 12, md: 3 },
+    gridSize: { xs: 12, md: 4 },
   },
   {
     key: 'purpose',
@@ -156,7 +117,7 @@ const PRODUCT_FORM_FIELDS: FieldConfig<keyof ProductApplication & string>[] = [
     gridSize: { xs: 12, md: 6 },
   },
   {
-    key: 'external_product_id',
+    key: 'externalProductId',
     label: 'Внешний ID',
     type: 'text',
     gridSize: { xs: 12, md: 6 },
@@ -165,30 +126,32 @@ const PRODUCT_FORM_FIELDS: FieldConfig<keyof ProductApplication & string>[] = [
 
 export const PRODUCT_APPLICATION_CONFIG: ApplicationConfig<
   ProductApplication,
-  ProductApplicationFilters
+  ProductApplicationSearchFilters,
+  ProductApplicationQueryParams,
+  ProductApplicationCreateRequest,
+  ProductApplicationUpdateRequest
 > = {
   title: 'Заявления на банковский продукт',
   description:
     'Список заявлений на оформление кредитов, вкладов, карт и других банковских продуктов.',
   path: ROUTES.applicationsProducts,
   applicationTypeCode: APPLICATION_TYPE.PRODUCT,
-  emptyFilters: EMPTY_PRODUCT_APPLICATION_FILTERS,
+  emptyFilters: EMPTY_PRODUCT_APPLICATION_SEARCH_FILTERS,
   filterFields: PRODUCT_FILTER_FIELDS,
   columns: PRODUCT_COLUMNS,
   formFields: PRODUCT_FORM_FIELDS,
   buildDefaults: () => ({
-    ...buildCommonDefaults(APPLICATION_TYPE.PRODUCT),
-    client_id: MOCK_CLIENT_ID,
-    product_category: '',
-    product_code: '',
-    product_name: '',
-    currency: '',
+    ...buildClientFormDefaults(),
+    productCategory: '',
+    productCode: '',
+    productName: '',
     amount: '',
-    term_months: '',
+    termMonths: '',
     purpose: '',
-    tariff_code: '',
-    external_product_id: '',
+    tariffCode: '',
+    externalProductId: '',
   }),
+  toQueryParams: toProductApplicationQueryParams,
   api: {
     search: searchProductApplications,
     create: createProductApplication,

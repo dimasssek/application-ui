@@ -5,73 +5,101 @@ import {
   updateServiceApplication,
 } from '../../api/applications/serviceApplicationApi';
 import { ROUTES } from '../../navigation/routes';
-import { MOCK_CLIENT_ID } from './common';
 import { APPLICATION_TYPE } from './enums';
 import {
-  EMPTY_SERVICE_APPLICATION_FILTERS,
+  EMPTY_SERVICE_APPLICATION_SEARCH_FILTERS,
   type ServiceApplication,
-  type ServiceApplicationFilters,
+  type ServiceApplicationCreateRequest,
+  type ServiceApplicationQueryParams,
+  type ServiceApplicationSearchFilters,
+  type ServiceApplicationUpdateRequest,
+  toServiceApplicationQueryParams,
 } from './service';
 import {
-  buildCommonDefaults,
+  buildClientFormDefaults,
   COMMON_COLUMNS,
   COMMON_FILTER_FIELDS,
   COMMON_FORM_FIELDS,
+  SERVICE_ACTION_TYPE_LABELS,
+  SERVICE_ACTION_TYPE_OPTIONS,
+  SERVICE_TYPE_LABELS,
+  SERVICE_TYPE_OPTIONS,
   type ApplicationConfig,
   type ColumnConfig,
   type FieldConfig,
 } from './registry';
 
-const SERVICE_FILTER_FIELDS: FieldConfig<keyof ServiceApplicationFilters & string>[] =
-  [
-    ...(COMMON_FILTER_FIELDS as FieldConfig<keyof ServiceApplicationFilters & string>[]),
-    {
-      key: 'service_type',
-      label: 'Тип услуги',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'service_name',
-      label: 'Название услуги',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-    {
-      key: 'action_type',
-      label: 'Действие',
-      type: 'text',
-      gridSize: { xs: 12, md: 4 },
-    },
-  ];
+const SERVICE_FILTER_FIELDS: FieldConfig<
+  keyof ServiceApplicationSearchFilters & string
+>[] = [
+  ...(COMMON_FILTER_FIELDS as FieldConfig<
+    keyof ServiceApplicationSearchFilters & string
+  >[]),
+  {
+    key: 'serviceType',
+    label: 'Тип услуги',
+    type: 'select',
+    options: SERVICE_TYPE_OPTIONS,
+    labels: SERVICE_TYPE_LABELS,
+    gridSize: { xs: 12, md: 4 },
+  },
+  {
+    key: 'serviceName',
+    label: 'Название услуги',
+    type: 'text',
+    gridSize: { xs: 12, md: 4 },
+  },
+  {
+    key: 'actionType',
+    label: 'Действие',
+    type: 'select',
+    options: SERVICE_ACTION_TYPE_OPTIONS,
+    labels: SERVICE_ACTION_TYPE_LABELS,
+    gridSize: { xs: 12, md: 4 },
+  },
+];
 
 const SERVICE_COLUMNS: ColumnConfig<keyof ServiceApplication & string>[] = [
   ...(COMMON_COLUMNS as ColumnConfig<keyof ServiceApplication & string>[]),
-  { key: 'service_type', label: 'Тип услуги', minWidth: 160 },
-  { key: 'service_name', label: 'Название услуги', minWidth: 200 },
-  { key: 'action_type', label: 'Действие', minWidth: 120 },
+  {
+    key: 'serviceType',
+    label: 'Тип услуги',
+    minWidth: 160,
+    labels: SERVICE_TYPE_LABELS,
+  },
+  { key: 'serviceName', label: 'Название услуги', minWidth: 200 },
+  {
+    key: 'actionType',
+    label: 'Действие',
+    minWidth: 120,
+    labels: SERVICE_ACTION_TYPE_LABELS,
+  },
 ];
 
 const SERVICE_FORM_FIELDS: FieldConfig<keyof ServiceApplication & string>[] = [
   ...(COMMON_FORM_FIELDS as FieldConfig<keyof ServiceApplication & string>[]),
   {
-    key: 'service_type',
+    key: 'serviceType',
     label: 'Тип услуги',
-    type: 'text',
+    type: 'select',
+    options: SERVICE_TYPE_OPTIONS,
+    labels: SERVICE_TYPE_LABELS,
     required: true,
     gridSize: { xs: 12, md: 6 },
   },
   {
-    key: 'service_name',
+    key: 'serviceName',
     label: 'Название услуги',
     type: 'text',
     required: true,
     gridSize: { xs: 12, md: 6 },
   },
   {
-    key: 'action_type',
+    key: 'actionType',
     label: 'Действие',
-    type: 'text',
+    type: 'select',
+    options: SERVICE_ACTION_TYPE_OPTIONS,
+    labels: SERVICE_ACTION_TYPE_LABELS,
     required: true,
     gridSize: { xs: 12, md: 6 },
   },
@@ -79,24 +107,27 @@ const SERVICE_FORM_FIELDS: FieldConfig<keyof ServiceApplication & string>[] = [
 
 export const SERVICE_APPLICATION_CONFIG: ApplicationConfig<
   ServiceApplication,
-  ServiceApplicationFilters
+  ServiceApplicationSearchFilters,
+  ServiceApplicationQueryParams,
+  ServiceApplicationCreateRequest,
+  ServiceApplicationUpdateRequest
 > = {
   title: 'Заявления на банковскую услугу',
   description:
     'Список заявлений на подключение, изменение и отключение банковских услуг.',
   path: ROUTES.applicationsServices,
   applicationTypeCode: APPLICATION_TYPE.SERVICE,
-  emptyFilters: EMPTY_SERVICE_APPLICATION_FILTERS,
+  emptyFilters: EMPTY_SERVICE_APPLICATION_SEARCH_FILTERS,
   filterFields: SERVICE_FILTER_FIELDS,
   columns: SERVICE_COLUMNS,
   formFields: SERVICE_FORM_FIELDS,
   buildDefaults: () => ({
-    ...buildCommonDefaults(APPLICATION_TYPE.SERVICE),
-    client_id: MOCK_CLIENT_ID,
-    service_type: '',
-    service_name: '',
-    action_type: '',
+    ...buildClientFormDefaults(),
+    serviceType: '',
+    serviceName: '',
+    actionType: '',
   }),
+  toQueryParams: toServiceApplicationQueryParams,
   api: {
     search: searchServiceApplications,
     create: createServiceApplication,

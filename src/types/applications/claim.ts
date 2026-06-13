@@ -1,49 +1,71 @@
-/**
- * Заявление-претензия или обращение.
- * Поля общей части (application) + поля claim_application.
- */
-export type ClaimApplication = {
-  id: string;
-  client_id: string;
-  number: string;
-  application_type: string;
-  channel: string;
-  status_internal: string;
-  status_business: string;
-  reason: string;
-  created_date: string;
-  closed_date: string | null;
+import type {
+  ApplicationCreateRequest,
+  ApplicationTo,
+  ApplicationUpdateRequest,
+  BaseApplicationQueryParams,
+  BaseApplicationSearchFilters,
+} from './common';
+import {
+  EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+  mergeQueryParams,
+  toBaseApplicationQueryParams,
+} from './common';
+import type { ClaimType } from './enums';
 
-  claim_type: string;
-  claim_subject: string;
-  description: string;
-  external_ref: string;
+export type ClaimApplication = ApplicationTo & {
+  claimType: ClaimType;
+  claimSubject: string;
+  description: string | null;
+  externalRef: string | null;
 };
 
-export type ClaimApplicationFilters = {
-  status_business: string;
-  reason: string;
-  number: string;
-  channel: string;
-  created_date: string;
-  closed_date: string;
-
-  claim_type: string;
-  claim_subject: string;
-  description: string;
-  external_ref: string;
+export type ClaimApplicationCreateRequest = ApplicationCreateRequest & {
+  claimType: ClaimType;
+  claimSubject: string;
+  description?: string | null;
+  externalRef?: string | null;
 };
 
-export const EMPTY_CLAIM_APPLICATION_FILTERS: ClaimApplicationFilters = {
-  status_business: '',
-  reason: '',
-  number: '',
-  channel: '',
-  created_date: '',
-  closed_date: '',
-
-  claim_type: '',
-  claim_subject: '',
-  description: '',
-  external_ref: '',
+export type ClaimApplicationUpdateRequest = ApplicationUpdateRequest & {
+  claimType: ClaimType;
+  claimSubject: string;
+  description?: string | null;
+  externalRef?: string | null;
 };
+
+export type ClaimApplicationQueryParams = BaseApplicationQueryParams & {
+  claimType?: ClaimType;
+  claimSubject?: string;
+};
+
+export type ClaimApplicationSearchFilters = BaseApplicationSearchFilters & {
+  claimType: string;
+  claimSubject: string;
+};
+
+export const EMPTY_CLAIM_APPLICATION_SEARCH_FILTERS: ClaimApplicationSearchFilters =
+  {
+    ...EMPTY_BASE_APPLICATION_SEARCH_FILTERS,
+    claimType: '',
+    claimSubject: '',
+  };
+
+export function toClaimApplicationQueryParams(
+  filters: ClaimApplicationSearchFilters,
+  pagination?: Pick<BaseApplicationQueryParams, 'pageNo' | 'pageSize' | 'sortKey'>
+): ClaimApplicationQueryParams {
+  const base = toBaseApplicationQueryParams(filters, pagination);
+  const specific: Omit<
+    ClaimApplicationQueryParams,
+    keyof BaseApplicationQueryParams
+  > = {};
+
+  if (filters.claimType.trim()) {
+    specific.claimType = filters.claimType as ClaimType;
+  }
+  if (filters.claimSubject.trim()) {
+    specific.claimSubject = filters.claimSubject.trim();
+  }
+
+  return mergeQueryParams(base, specific);
+}
